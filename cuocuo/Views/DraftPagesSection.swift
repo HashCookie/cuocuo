@@ -8,6 +8,7 @@ struct DraftPagesSection: View {
     let kind: PageKind
     @Binding var draft: QuestionDraft
     var footerNotes: [String]
+    var showsRecognizedText: Bool = true
     var onTap: (PageStrip.Item) -> Void
     var onScan: () -> Void
     var onCamera: () -> Void
@@ -20,6 +21,7 @@ struct DraftPagesSection: View {
     var onFocusedEdit: () -> Void
 
     @State private var photoItems: [PhotosPickerItem] = []
+    @State private var writingNote = false
     @FocusState private var textFocused: Bool
 
     private var text: Binding<String> {
@@ -48,34 +50,23 @@ struct DraftPagesSection: View {
                 )
                 .frame(minHeight: 112)
             }
-            if CaptureAvailability.showsDocumentScanner {
-                Button(action: onScan) {
-                    Label("扫描文稿", systemImage: "document.viewfinder")
-                }
-            }
-            if CaptureAvailability.showsCamera {
-                Button(action: onCamera) {
-                    Label("拍照", systemImage: "camera")
-                }
-            }
-            PhotosPicker(selection: $photoItems, maxSelectionCount: 12, matching: .images) {
-                Label("相册", systemImage: "photo.on.rectangle")
-            }
-            Button(action: onFiles) {
-                Label("文件", systemImage: "folder")
-            }
-            TextEditor(text: text)
-                .focused($textFocused)
-                .frame(minHeight: 140)
-                .overlay(alignment: .topLeading) {
-                    if text.wrappedValue.isEmpty {
-                        Text(placeholder)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 8)
-                            .padding(.leading, 5)
-                            .allowsHitTesting(false)
+            addMenu
+            if showsRecognizedText && showsText {
+                TextEditor(text: text)
+                    .focused($textFocused)
+                    .frame(minHeight: kind == .question ? 120 : 88)
+                    .overlay(alignment: .topLeading) {
+                        if text.wrappedValue.isEmpty {
+                            Text(placeholder)
+                                .foregroundStyle(.tertiary)
+                                .padding(.top, 8)
+                                .padding(.leading, 5)
+                                .allowsHitTesting(false)
+                        }
                     }
-                }
+            } else if showsRecognizedText && kind == .analysis {
+                Button("写一句错因") { writingNote = true }
+            }
         } header: {
             Text(kind.title)
         } footer: {
@@ -96,6 +87,30 @@ struct DraftPagesSection: View {
             let batch = items
             photoItems = []
             Task { await load(batch) }
+        }
+    }
+
+    private var showsText: Bool {
+        if kind == .question {
+            return !stripItems.isEmpty || !text.wrappedValue.isEmpty
+        }
+        return writingNote || !stripItems.isEmpty || !text.wrappedValue.isEmpty
+    }
+
+    private var addMenu: some View {
+        Menu {
+            if CaptureAvailability.showsDocumentScanner {
+                Button("扫描", systemImage: "document.viewfinder", action: onScan)
+            }
+            if CaptureAvailability.showsCamera {
+                Button("拍照", systemImage: "camera", action: onCamera)
+            }
+            PhotosPicker(selection: $photoItems, maxSelectionCount: 12, matching: .images) {
+                Label("从相册选择", systemImage: "photo.on.rectangle")
+            }
+            Button("从文件选择", systemImage: "folder", action: onFiles)
+        } label: {
+            Label(kind == .question ? "添加这一题" : "添加错因", systemImage: "plus")
         }
     }
 
@@ -135,7 +150,7 @@ struct DraftPagesSection: View {
     }
 }
 
-private struct PickedImage: Transferable {
+struct PickedImage: Transferable {
     let data: Data
 
     static var transferRepresentation: some TransferRepresentation {

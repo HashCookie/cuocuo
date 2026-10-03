@@ -3,6 +3,8 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \WrongQuestion.updatedAt, order: .reverse) private var questions: [WrongQuestion]
     @State private var selection: LibrarySection?
     @State private var query = ""
@@ -14,8 +16,11 @@ struct RootView: View {
         } detail: {
             NavigationStack {
                 if let selection {
-                    QuestionListView(section: selection)
-                        .id(selection)
+                    if selection == .today {
+                        TodayQueueView()
+                    } else {
+                        QuestionListView(section: selection)
+                    }
                 } else {
                     ContentUnavailableView(
                         "选择一个模块",
@@ -27,10 +32,16 @@ struct RootView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .task {
-            selectAllIfRegular()
+            selectTodayIfRegular()
+            ReviewReminder.refresh(in: modelContext)
         }
         .onChange(of: horizontalSizeClass) { _, _ in
-            selectAllIfRegular()
+            selectTodayIfRegular()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                ReviewReminder.refresh(in: modelContext)
+            }
         }
     }
 
@@ -53,14 +64,14 @@ struct RootView: View {
                 }
             } else {
                 ForEach(LibrarySection.sidebar) { section in
-                    let count = unmasteredCount(section)
+                    let count = sidebarCount(section)
                     HStack(alignment: .center, spacing: 12) {
                         LibrarySectionLabel(section: section)
                         Spacer(minLength: 8)
                         Text(count, format: .number)
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
-                            .accessibilityLabel("未掌握 \(count)")
+                            .foregroundStyle(section == .today && count > 0 ? .primary : .secondary)
+                            .accessibilityLabel(countLabel(section, count: count))
                     }
                     .tag(section)
                 }
@@ -83,19 +94,27 @@ struct RootView: View {
         questions.filter { $0.matches(query: trimmedQuery) }
     }
 
-    private func unmasteredCount(_ section: LibrarySection) -> Int {
-        questions.filter { question in
-            guard question.mastery == .unmastered else { return false }
-            if let module = section.module {
-                return question.module == module
-            }
-            return true
-        }.count
+    private func sidebarCount(_ section: LibrarySection) -> Int {
+        switch section {
+        case .today:
+            ReviewSchedule.dueQuestions(from: Array(questions)).count
+        case .all:
+            questions.filter { $0.mastery == .unmastered }.count
+        case .module(let module):
+            questions.filter { $0.mastery == .unmastered && $0.module == module }.count
+        }
     }
 
-    private func selectAllIfRegular() {
+    private func countLabel(_ section: LibrarySection, count: Int) -> String {
+        switch section {
+        case .today: "今天要看 \(count)"
+        case .all, .module: "未掌握 \(count)"
+        }
+    }
+
+    private func selectTodayIfRegular() {
         if horizontalSizeClass != .compact, selection == nil {
-            selection = .all
+            selection = .today
         }
     }
 }

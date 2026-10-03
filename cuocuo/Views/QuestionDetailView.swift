@@ -10,6 +10,7 @@ struct QuestionDetailView: View {
     @State private var editing = false
     @State private var pendingDelete: WrongQuestion?
     @State private var viewer: PageViewerRoute?
+    @State private var redoing = false
 
     var body: some View {
         List {
@@ -19,19 +20,29 @@ struct QuestionDetailView: View {
                     LabeledContent("子题型", value: subtype)
                 }
                 LabeledContent("收录日期", value: Self.day(question.createdAt))
+                if let correct = question.correctChoice {
+                    LabeledContent("正确答案", value: correct)
+                }
                 Toggle("已掌握", isOn: masteredBinding)
             }
             Section("题目") {
                 pages(question.questionPages, title: "题目")
-                Text(question.questionText.isEmpty ? "未识别出文字" : question.questionText)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !question.questionText.isEmpty {
+                    Text(question.questionText)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
             Section("错因") {
                 pages(question.analysisPages, title: "错因")
-                Text(question.analysisText.isEmpty ? "未识别出文字" : question.analysisText)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !question.analysisText.isEmpty {
+                    Text(question.analysisText)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if question.analysisPages.isEmpty {
+                    Text("还没记错因。")
+                        .foregroundStyle(.secondary)
+                }
                 if !question.causeTags.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("错因标签")
@@ -45,6 +56,18 @@ struct QuestionDetailView: View {
         }
         .navigationTitle("错题")
         .toolbarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                redoing = true
+            } label: {
+                Text("重新做")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding()
+            .background(.bar)
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -63,6 +86,9 @@ struct QuestionDetailView: View {
         }
         .sheet(isPresented: $editing) {
             QuestionEditorView(existing: question, defaultModule: question.module)
+        }
+        .adaptiveCover(isPresented: $redoing) {
+            ReviewSessionView(questionIDs: [question.id])
         }
         .adaptiveCover(item: $viewer) { route in
             PageViewer(title: route.title, paths: route.paths, index: route.index)

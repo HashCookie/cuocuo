@@ -93,13 +93,15 @@ enum PageKind: String, Codable, Hashable {
 }
 
 enum LibrarySection: Hashable, Identifiable {
+    case today
     case all
     case module(ExamModule)
 
-    static let sidebar: [LibrarySection] = [.all] + ExamModule.allCases.map(LibrarySection.module)
+    static let sidebar: [LibrarySection] = [.today, .all] + ExamModule.allCases.map(LibrarySection.module)
 
     var id: String {
         switch self {
+        case .today: "today"
         case .all: "all"
         case .module(let module): module.rawValue
         }
@@ -111,6 +113,7 @@ enum LibrarySection: Hashable, Identifiable {
 
     var title: String {
         switch self {
+        case .today: "今天要看"
         case .all: "全部错题"
         case .module(let module): module.title
         }
@@ -118,6 +121,7 @@ enum LibrarySection: Hashable, Identifiable {
 
     var subtitle: String {
         switch self {
+        case .today: "今天该再看的题"
         case .all: "四个模块"
         case .module(let module): module.fullName
         }
@@ -125,6 +129,7 @@ enum LibrarySection: Hashable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .today: "calendar"
         case .all: "square.grid.2x2"
         case .module(let module): module.symbol
         }

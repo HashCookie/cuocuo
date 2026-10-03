@@ -9,7 +9,12 @@ final class WrongQuestion {
     var questionText: String
     var analysisText: String
     var causeTags: [String]
+    var choiceLetters: [String] = ["A", "B", "C", "D"]
+    var correctChoice: String?
+    var choiceClipLetters: [String] = []
+    var choiceClipPaths: [String] = []
     var masteryRaw: String
+    var nextReviewAt: Date?
     var createdAt: Date
     var updatedAt: Date
     @Relationship(deleteRule: .cascade, inverse: \ScanPage.question)
@@ -22,7 +27,10 @@ final class WrongQuestion {
         questionText: String,
         analysisText: String,
         causeTags: [String],
+        choiceLetters: [String] = ChoiceOptions.standard,
+        correctChoice: String? = nil,
         mastery: Mastery,
+        nextReviewAt: Date? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -32,7 +40,12 @@ final class WrongQuestion {
         self.questionText = questionText
         self.analysisText = analysisText
         self.causeTags = causeTags
+        self.choiceLetters = ChoiceOptions.normalized(choiceLetters)
+        self.correctChoice = correctChoice
+        self.choiceClipLetters = []
+        self.choiceClipPaths = []
         self.masteryRaw = mastery.rawValue
+        self.nextReviewAt = nextReviewAt
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.pages = []
@@ -56,12 +69,25 @@ final class WrongQuestion {
         pages.filter { $0.kind == .analysis }.sorted { $0.order < $1.order }
     }
 
+    var answerChoices: [String] {
+        ChoiceOptions.normalized(choiceLetters)
+    }
+
+    func choiceClipPath(for letter: String) -> String? {
+        guard let index = choiceClipLetters.firstIndex(of: letter) else { return nil }
+        guard choiceClipPaths.indices.contains(index) else { return nil }
+        let path = choiceClipPaths[index]
+        return path.isEmpty ? nil : path
+    }
+
     var summaryLine: String {
         let first = questionText
             .split(whereSeparator: \.isNewline)
             .first
             .map { String($0).trimmingCharacters(in: .whitespaces) } ?? ""
-        return first.isEmpty ? "未识别出文字" : first
+        if !first.isEmpty { return first }
+        if let subtype, !subtype.isEmpty { return subtype }
+        return "图片题"
     }
 
     func matches(query: String) -> Bool {

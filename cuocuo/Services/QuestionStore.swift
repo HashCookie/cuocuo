@@ -6,8 +6,22 @@ enum QuestionStore {
     static func save(draft: QuestionDraft, existing: WrongQuestion?, in context: ModelContext) throws {
         let question = try upsert(draft: draft, existing: existing, in: context)
         try syncPages(draft: draft, question: question, in: context)
+        if draft.choiceClipsEdited {
+            let letters = draft.choiceClips.keys.sorted()
+            var paths: [String] = []
+            for letter in letters {
+                guard let jpeg = draft.choiceClips[letter] else { continue }
+                let path = try ImageStore.writeNamed(jpeg, questionID: question.id, name: "choice-\(letter).jpg")
+                paths.append(path)
+            }
+            question.choiceClipLetters = letters
+            question.choiceClipPaths = paths
+        }
         try context.save()
-        ImageStore.cleanup(questionID: question.id, keep: Set(draft.pages.map(\.relativePath)))
+        var keep = Set(draft.pages.map(\.relativePath))
+        keep.formUnion(question.choiceClipPaths)
+        ImageStore.cleanup(questionID: question.id, keep: keep)
+        ReviewReminder.refresh(in: context)
     }
 
     static func delete(_ question: WrongQuestion, in context: ModelContext) throws {
@@ -15,12 +29,30 @@ enum QuestionStore {
         context.delete(question)
         try context.save()
         ImageStore.deleteFolder(questionID: id)
+        ReviewReminder.refresh(in: context)
     }
 
     static func setMastered(_ isMastered: Bool, question: WrongQuestion, in context: ModelContext) throws {
         question.mastery = isMastered ? .mastered : .unmastered
+        question.nextReviewAt = isMastered ? nil : .now
         question.updatedAt = .now
         try context.save()
+        ReviewReminder.refresh(in: context)
+    }
+
+    static func setCorrectChoice(_ letter: String, question: WrongQuestion, in context: ModelContext) throws {
+        guard question.answerChoices.contains(letter) else { return }
+        question.correctChoice = letter
+        question.updatedAt = .now
+        try context.save()
+    }
+
+    static func scheduleAgain(_ question: WrongQuestion, in context: ModelContext) throws {
+        question.mastery = .unmastered
+        question.nextReviewAt = ReviewSchedule.nextDate()
+        question.updatedAt = .now
+        try context.save()
+        ReviewReminder.refresh(in: context)
     }
 
     private static func upsert(
@@ -30,12 +62,20 @@ enum QuestionStore {
     ) throws -> WrongQuestion {
         let now = Date()
         if let existing {
+            let wasMastered = existing.mastery == .mastered
             existing.module = draft.module
             existing.subtype = cleanedSubtype(draft.subtype)
             existing.questionText = cleaned(draft.questionText)
             existing.analysisText = cleaned(draft.analysisText)
             existing.causeTags = cleanedTags(draft.causeTags)
+            existing.choiceLetters = draft.answerChoices
+            existing.correctChoice = cleanedChoice(draft.correctChoice, allowed: draft.answerChoices)
             existing.mastery = draft.mastery
+            if draft.mastery == .mastered {
+                existing.nextReviewAt = nil
+            } else if wasMastered || existing.nextReviewAt == nil {
+                existing.nextReviewAt = now
+            }
             existing.updatedAt = now
             return existing
         }
@@ -46,7 +86,10 @@ enum QuestionStore {
             questionText: cleaned(draft.questionText),
             analysisText: cleaned(draft.analysisText),
             causeTags: cleanedTags(draft.causeTags),
+            choiceLetters: draft.answerChoices,
+            correctChoice: cleanedChoice(draft.correctChoice, allowed: draft.answerChoices),
             mastery: draft.mastery,
+            nextReviewAt: draft.mastery == .unmastered ? now : nil,
             createdAt: now,
             updatedAt: now
         )
@@ -78,6 +121,11 @@ enum QuestionStore {
                 context.insert(page)
             }
         }
+    }
+
+    private static func cleanedChoice(_ choice: String?, allowed: [String]) -> String? {
+        guard let choice, allowed.contains(choice) else { return nil }
+        return choice
     }
 
     private static func cleaned(_ text: String) -> String {

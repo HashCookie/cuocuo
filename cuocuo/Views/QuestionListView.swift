@@ -291,9 +291,8 @@ struct QuestionItemActions: ViewModifier {
     }
 
     private func toggleMastery() {
-        question.mastery = question.mastery == .mastered ? .unmastered : .mastered
-        question.updatedAt = .now
-        try? modelContext.save()
+        let makeMastered = question.mastery == .unmastered
+        try? QuestionStore.setMastered(makeMastered, question: question, in: modelContext)
     }
 }
 

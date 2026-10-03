@@ -1,4 +1,5 @@
 import Foundation
+import PhotosUI
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -21,6 +22,11 @@ struct QuestionEditorView: View {
     @State private var showDiscard = false
     @State private var notice: EditorNotice?
     @State private var viewer: PageViewerRoute?
+    @State private var cropQueue: [PendingCrop] = []
+    @State private var optionSplit: OptionSplitRequest?
+    @State private var createStep: CreateStep = .capture
+    @State private var createPhotos: [PhotosPickerItem] = []
+    @State private var didOfferCamera = false
 
     init(existing: WrongQuestion?, defaultModule: ExamModule) {
         self.existing = existing
@@ -33,31 +39,61 @@ struct QuestionEditorView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                ownershipSection
-                pagesSection(kind: .question)
-                pagesSection(kind: .analysis)
-                causeSection
-                statusSection
-                if isBusy {
-                    Section {
-                        HStack(spacing: 12) {
-                            ProgressView()
-                            Text("正在识别文字，完成后即可存储。")
+            Group {
+                if existing == nil {
+                    createScreen
+                } else {
+                    Form {
+                        ownershipSection
+                        pagesSection(kind: .question)
+                        choiceSection
+                        pagesSection(kind: .analysis)
+                        causeSection
+                        statusSection
+                        if isBusy {
+                            Section {
+                                HStack(spacing: 12) {
+                                    ProgressView()
+                                    Text("正在识别文字，完成后即可存储。")
+                                }
+                            }
                         }
                     }
                 }
             }
-            .navigationTitle(existing == nil ? "新建错题" : "编辑错题")
+            .animation(.snappy, value: createStep)
+            .navigationTitle(navigationTitle)
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消", action: askCancel)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("存储", action: save)
-                        .disabled(!draft.canSave || pendingImports > 0 || isSaving)
+                if existing != nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("存储", action: save)
+                            .disabled(!draft.canSave || pendingImports > 0 || isSaving)
+                    }
                 }
+            }
+        }
+        .task {
+            guard existing == nil, !didOfferCamera else { return }
+            didOfferCamera = true
+            guard CaptureAvailability.cameraAvailable else { return }
+            openCamera(for: .question)
+        }
+        .onChange(of: createPhotos) { _, items in
+            guard !items.isEmpty else { return }
+            let batch = items
+            createPhotos = []
+            Task { await loadCreatePhotos(batch) }
+        }
+        .onChange(of: draft.hasQuestionPage) { _, hasPage in
+            guard existing == nil else { return }
+            if hasPage, createStep == .capture {
+                createStep = .answer
+            } else if !hasPage {
+                createStep = .capture
             }
         }
         .interactiveDismissDisabled(draft.isDirty || isBusy)
@@ -79,6 +115,37 @@ struct QuestionEditorView: View {
         .adaptiveCover(item: $viewer) { route in
             PageViewer(title: route.title, paths: route.paths, index: route.index)
         }
+        .sheet(item: $optionSplit) { request in
+            OptionSplitSheet(imageData: request.data) { clips in
+                draft.choiceClips = clips
+                draft.choiceClipsEdited = true
+            } onSkip: {}
+        }
+        .adaptiveCover(item: cropItem) { item in
+            QuestionCropView(
+                imageData: item.data,
+                purpose: item.purpose,
+                remaining: cropQueue.count,
+                onUse: { cropped in
+                    let kind: PageKind = item.purpose == .rule ? .analysis : .question
+                    if !cropQueue.isEmpty { cropQueue.removeFirst() }
+                    ingestMany([cropped], kind: kind)
+                },
+                onUseThenRule: { cropped in
+                    let original = item.data
+                    if !cropQueue.isEmpty { cropQueue.removeFirst() }
+                    ingestMany([cropped], kind: .question)
+                    cropQueue.insert(PendingCrop(data: original, purpose: .rule), at: 0)
+                },
+                onSkip: {
+                    if !cropQueue.isEmpty { cropQueue.removeFirst() }
+                },
+                onCancel: {
+                    cropQueue.removeAll()
+                }
+            )
+            .id(item.id)
+        }
         .confirmationDialog("放弃已录入的内容？", isPresented: $showDiscard, titleVisibility: .visible) {
             Button("放弃", role: .destructive) {
                 Task { await close(saved: false) }
@@ -99,6 +166,163 @@ struct QuestionEditorView: View {
             Button("好", role: .cancel) {}
         } message: { current in
             Text(current.message)
+        }
+    }
+
+    private var navigationTitle: String {
+        guard existing == nil else { return "编辑错题" }
+        return createStep == .capture ? "新建错题" : "保存这道题"
+    }
+
+    private var createScreen: some View {
+        VStack(spacing: 20) {
+            if draft.hasQuestionPage {
+                answerLanding
+            } else {
+                captureLanding
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var captureLanding: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            if CaptureAvailability.showsCamera {
+                Button {
+                    openCamera(for: .question)
+                } label: {
+                    Label("拍这一题", systemImage: "camera")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+            PhotosPicker(selection: $createPhotos, maxSelectionCount: 1, matching: .images) {
+                Label("相册", systemImage: "photo")
+            }
+            .buttonStyle(.bordered)
+            Menu {
+                if CaptureAvailability.showsDocumentScanner {
+                    Button("扫描", systemImage: "document.viewfinder") {
+                        openScanner(for: .question)
+                    }
+                }
+                Button("从文件选择", systemImage: "folder") {
+                    captureKind = .question
+                    importingFiles = true
+                }
+            } label: {
+                Text("其他方式")
+            }
+            .font(.subheadline)
+            Spacer()
+        }
+    }
+
+    private var answerLanding: some View {
+        VStack(spacing: 0) {
+            if let page = draft.pages.filter({ $0.kind == .question }).sorted(by: { $0.order < $1.order }).last {
+                Button {
+                    showPage(
+                        PageStrip.Item(id: page.id, path: page.relativePath, isRecognizing: false, failed: false, label: "题目"),
+                        kind: .question
+                    )
+                } label: {
+                    FileImage(relativePath: page.relativePath, maxPixel: 1600, contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(16)
+                }
+                .buttonStyle(.plain)
+            }
+            VStack(spacing: 12) {
+                if draft.hasAnalysisMaterial {
+                    Text("规律已收好，重做时先不显示。")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Menu {
+                    ForEach(ExamModule.allCases) { module in
+                        Button(module.title) {
+                            draft.module = module
+                            draft.sanitizeSelection()
+                        }
+                    }
+                } label: {
+                    Text(draft.module.title)
+                        .font(.subheadline)
+                }
+                HStack(spacing: 8) {
+                    ForEach(["A", "B", "C", "D"], id: \.self) { letter in
+                        answerKey(letter)
+                    }
+                }
+                Button("先不填，直接保存") {
+                    saveAnswer(nil)
+                }
+                .buttonStyle(.borderless)
+                .disabled(isSaving || !draft.hasQuestionPage)
+                Button("重拍", action: retake)
+                    .buttonStyle(.borderless)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .disabled(isSaving)
+            }
+            .padding()
+            .background(.bar)
+        }
+    }
+
+    private func answerKey(_ letter: String) -> some View {
+        Button {
+            saveAnswer(letter)
+        } label: {
+            Text(letter)
+                .font(.title3.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+        }
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.roundedRectangle(radius: 10))
+        .disabled(isSaving || !draft.hasQuestionPage)
+    }
+
+    private func saveAnswer(_ letter: String?) {
+        guard draft.hasQuestionPage, !isSaving else { return }
+        draft.includesFifthChoice = false
+        draft.correctChoice = letter
+        isSaving = true
+        do {
+            try QuestionStore.save(draft: draft, existing: existing, in: modelContext)
+        } catch {
+            isSaving = false
+            notice = EditorNotice(title: "没有存下来", message: "请再试一次。")
+            return
+        }
+        Task { await close(saved: true) }
+    }
+
+    private func retake() {
+        let pages = draft.pages.filter { $0.kind == .question }
+        for page in pages {
+            let path = page.relativePath
+            draft.remove(pageID: page.id)
+            if draft.isNew || !draft.originalPaths.contains(path) {
+                try? FileManager.default.removeItem(at: ImageStore.fileURL(relativePath: path))
+            }
+        }
+        createStep = .capture
+        openCamera(for: .question)
+    }
+
+    private func loadCreatePhotos(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            if let picked = try? await item.loadTransferable(type: PickedImage.self) {
+                stageForCrop([picked.data], kind: .question)
+            } else {
+                notice = EditorNotice(title: "无法收录", message: "这张图片没有读出来。")
+            }
         }
     }
 
@@ -132,11 +356,12 @@ struct QuestionEditorView: View {
         )
     }
 
-    private func pagesSection(kind: PageKind) -> some View {
+    private func pagesSection(kind: PageKind, showsRecognizedText: Bool = true) -> some View {
         DraftPagesSection(
             kind: kind,
             draft: $draft,
             footerNotes: footerNotes(for: kind),
+            showsRecognizedText: showsRecognizedText,
             onTap: { item in showPage(item, kind: kind) },
             onScan: { openScanner(for: kind) },
             onCamera: { openCamera(for: kind) },
@@ -144,7 +369,7 @@ struct QuestionEditorView: View {
                 captureKind = kind
                 importingFiles = true
             },
-            onIngest: { ingestMany([$0], kind: kind) },
+            onIngest: { stageForCrop([$0], kind: kind) },
             onIngestFailed: {
                 notice = EditorNotice(title: "无法收录", message: "这张图片没有读出来。")
             },
@@ -162,17 +387,59 @@ struct QuestionEditorView: View {
     }
 
     private func footerNotes(for kind: PageKind) -> [String] {
-        var notes = ["图片会原样保存，文字用于搜索。"]
+        var notes = kind == .question
+            ? ["一次只收一道题。拍到整页时，先框出这一道。"]
+            : ["错因可以先不填，回头再补。"]
         if kind == .question, !draft.hasQuestionPage {
             notes.append("题目至少需要一页。")
-        }
-        if kind == .analysis, draft.hasQuestionPage, !draft.hasAnalysisMaterial {
-            notes.append("错因至少需要一页，或写上一句错因。")
         }
         if kind == .question, let hint = CaptureAvailability.platformHint {
             notes.append(hint)
         }
         return notes
+    }
+
+    private var choiceSection: some View {
+        Section {
+            Picker("选项", selection: $draft.includesFifthChoice) {
+                Text("A 到 D").tag(false)
+                Text("A 到 E").tag(true)
+            }
+            .pickerStyle(.segmented)
+            Picker("正确答案", selection: correctChoiceBinding) {
+                Text("还没记").tag("")
+                ForEach(draft.answerChoices, id: \.self) { letter in
+                    Text(letter).tag(letter)
+                }
+            }
+            if draft.hasQuestionPage {
+                Button("分开选项里的图") {
+                    guard let page = draft.pages
+                        .filter({ $0.kind == .question })
+                        .sorted(by: { $0.order < $1.order })
+                        .last,
+                        let data = ImageStore.fileData(relativePath: page.relativePath)
+                    else { return }
+                    optionSplit = OptionSplitRequest(data: data)
+                }
+            }
+        } header: {
+            Text("选择题")
+        } footer: {
+            Text("重做时先选一项，再对答案。选项原文在扫描的题目上。")
+        }
+        .onChange(of: draft.includesFifthChoice) { _, includes in
+            if !includes, draft.correctChoice == "E" {
+                draft.correctChoice = nil
+            }
+        }
+    }
+
+    private var correctChoiceBinding: Binding<String> {
+        Binding(
+            get: { draft.correctChoice ?? "" },
+            set: { draft.correctChoice = $0.isEmpty ? nil : $0 }
+        )
     }
 
     private var causeSection: some View {
@@ -307,7 +574,7 @@ struct QuestionEditorView: View {
                 if accessed { url.stopAccessingSecurityScopedResource() }
             }
             if let data = try? Data(contentsOf: url) {
-                ingestMany([data], kind: kind)
+                stageForCrop([data], kind: kind)
             } else {
                 didFail = true
             }
@@ -315,6 +582,25 @@ struct QuestionEditorView: View {
         if didFail {
             notice = EditorNotice(title: "无法收录", message: "有图片没有读出来。")
         }
+    }
+
+    private var cropItem: Binding<PendingCrop?> {
+        Binding(
+            get: { cropQueue.first },
+            set: { newValue in
+                if newValue == nil {
+                    cropQueue.removeAll()
+                }
+            }
+        )
+    }
+
+    private func stageForCrop(_ datas: [Data], kind: PageKind) {
+        let purpose: CropPurpose = kind == .analysis ? .rule : .question
+        let pages = datas.filter { !$0.isEmpty }.map { PendingCrop(data: $0, purpose: purpose) }
+        guard !pages.isEmpty else { return }
+        captureKind = kind
+        cropQueue.append(contentsOf: pages)
     }
 
     private func ingestMany(_ datas: [Data], kind: PageKind) {
@@ -419,7 +705,7 @@ struct QuestionEditorView: View {
     /// 扫一扫、拍照和选文件会盖住这张表单。那种消失不能把已经扫进来的页清掉。
     private func discardIfSheetClosed() {
         guard !didFinish else { return }
-        guard !showScanner, !showCamera, viewer == nil, !importingFiles else { return }
+        guard !showScanner, !showCamera, viewer == nil, !importingFiles, cropQueue.isEmpty else { return }
         didFinish = true
         for task in tasks.values { task.cancel() }
         ImageStore.cleanup(questionID: draft.id, keep: draft.originalPaths)
@@ -430,7 +716,7 @@ struct QuestionEditorView: View {
         #if os(iOS)
         DocumentScannerView { images in
             showScanner = false
-            ingestMany(images, kind: captureKind)
+            stageForCrop(images, kind: captureKind)
         } onCancel: {
             showScanner = false
         }
@@ -448,7 +734,7 @@ struct QuestionEditorView: View {
             if data.isEmpty {
                 notice = EditorNotice(title: "无法拍照", message: "没有得到照片，请再试一次，或改用相册。")
             } else {
-                ingestMany([data], kind: captureKind)
+                stageForCrop([data], kind: captureKind)
             }
         } onCancel: {
             showCamera = false
@@ -458,6 +744,11 @@ struct QuestionEditorView: View {
         EmptyView()
         #endif
     }
+}
+
+private enum CreateStep: Equatable {
+    case capture
+    case answer
 }
 
 struct EditorNotice: Identifiable {

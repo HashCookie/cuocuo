@@ -9,6 +9,13 @@ enum ImageStore {
         return jpegData(from: source, maxPixel: maxPixel, quality: 0.82)
     }
 
+    nonisolated static func writeNamed(_ jpeg: Data, questionID: UUID, name: String) throws -> String {
+        let folder = try folderURL(questionID)
+        let url = folder.appendingPathComponent(name)
+        try jpeg.write(to: url, options: .atomic)
+        return "\(questionID.uuidString)/\(name)"
+    }
+
     nonisolated static func write(_ jpeg: Data, questionID: UUID, pageID: UUID) throws -> String {
         let folder = try folderURL(questionID)
         let name = pageID.uuidString + ".jpg"

@@ -3,6 +3,10 @@ import SwiftUI
 
 @main
 struct MyApp: App {
+    init() {
+        SampleLibrary.installIfRequested(in: AppStore.container.mainContext)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

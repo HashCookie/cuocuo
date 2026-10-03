@@ -16,6 +16,9 @@ struct DraftFingerprint: Equatable {
     var questionText: String
     var analysisText: String
     var causeTags: [String]
+    var includesFifthChoice: Bool
+    var correctChoice: String?
+    var choiceClipLetters: [String]
     var mastery: Mastery
     var pages: [PageFingerprint]
 }
@@ -37,6 +40,11 @@ struct QuestionDraft {
     var questionTextEdited: Bool
     var analysisTextEdited: Bool
     var causeTags: [String]
+    var includesFifthChoice: Bool
+    var correctChoice: String?
+    var savedClipLetters: [String]
+    var choiceClips: [String: Data]
+    var choiceClipsEdited: Bool
     var mastery: Mastery
     var pages: [DraftPage]
     var isNew: Bool
@@ -57,7 +65,7 @@ struct QuestionDraft {
     }
 
     var canSave: Bool {
-        hasQuestionPage && hasAnalysisMaterial && !isRecognizing
+        hasQuestionPage && !isRecognizing
     }
 
     var isDirty: Bool {
@@ -73,6 +81,11 @@ struct QuestionDraft {
         questionTextEdited = false
         analysisTextEdited = false
         causeTags = []
+        includesFifthChoice = false
+        correctChoice = nil
+        savedClipLetters = []
+        choiceClips = [:]
+        choiceClipsEdited = false
         mastery = .unmastered
         pages = []
         isNew = true
@@ -83,9 +96,16 @@ struct QuestionDraft {
             questionText: "",
             analysisText: "",
             causeTags: [],
+            includesFifthChoice: false,
+            correctChoice: nil,
+            choiceClipLetters: [],
             mastery: .unmastered,
             pages: []
         )
+    }
+
+    var answerChoices: [String] {
+        includesFifthChoice ? ChoiceOptions.all : ChoiceOptions.standard
     }
 
     init(question: WrongQuestion) {
@@ -108,6 +128,11 @@ struct QuestionDraft {
         questionTextEdited = question.questionText != Self.joined(loaded, kind: .question)
         analysisTextEdited = question.analysisText != Self.joined(loaded, kind: .analysis)
         causeTags = question.causeTags
+        includesFifthChoice = question.answerChoices.contains("E")
+        correctChoice = question.correctChoice
+        savedClipLetters = question.choiceClipLetters
+        choiceClips = [:]
+        choiceClipsEdited = false
         mastery = question.mastery
         pages = loaded
         isNew = false
@@ -118,6 +143,9 @@ struct QuestionDraft {
             questionText: question.questionText,
             analysisText: question.analysisText,
             causeTags: question.causeTags,
+            includesFifthChoice: question.answerChoices.contains("E"),
+            correctChoice: question.correctChoice,
+            choiceClipLetters: question.choiceClipLetters.sorted(),
             mastery: question.mastery,
             pages: Self.fingerprints(for: loaded)
         )
@@ -186,6 +214,9 @@ struct QuestionDraft {
             questionText: questionText,
             analysisText: analysisText,
             causeTags: causeTags,
+            includesFifthChoice: includesFifthChoice,
+            correctChoice: correctChoice,
+            choiceClipLetters: choiceClipsEdited ? choiceClips.keys.sorted() : savedClipLetters.sorted(),
             mastery: mastery,
             pages: Self.fingerprints(for: pages)
         )

@@ -6,8 +6,27 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = cuocuo;
+		};
+		B20000000000000000000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 000000000000000100000000;
+			remoteInfo = cuocuo;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* cuocuo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = cuocuo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000002 /* cuocuoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cuocuoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000002 /* cuocuoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cuocuoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +35,30 @@
 			path = cuocuo;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000001 /* cuocuoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = cuocuoTests;
+			sourceTree = "<group>";
+		};
+		B20000000000000000000001 /* cuocuoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = cuocuoUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		000000000000000130000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		A10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
+		B20000000000000000000003 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -31,6 +70,8 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000010 /* cuocuo */,
+				A10000000000000000000001 /* cuocuoTests */,
+				B20000000000000000000001 /* cuocuoUITests */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -39,6 +80,8 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000120 /* cuocuo.app */,
+				A10000000000000000000002 /* cuocuoTests.xctest */,
+				B20000000000000000000002 /* cuocuoUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -64,6 +107,48 @@
 			productReference = 000000000000000000000120 /* cuocuo.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000000000000000000006 /* cuocuoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000000B /* Build configuration list for PBXNativeTarget "cuocuoTests" */;
+			buildPhases = (
+				A10000000000000000000004 /* Sources */,
+				A10000000000000000000003 /* Frameworks */,
+				A10000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000001 /* cuocuoTests */,
+			);
+			name = cuocuoTests;
+			productName = cuocuoTests;
+			productReference = A10000000000000000000002 /* cuocuoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B20000000000000000000006 /* cuocuoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B2000000000000000000000B /* Build configuration list for PBXNativeTarget "cuocuoUITests" */;
+			buildPhases = (
+				B20000000000000000000004 /* Sources */,
+				B20000000000000000000003 /* Frameworks */,
+				B20000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B20000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B20000000000000000000001 /* cuocuoUITests */,
+			);
+			name = cuocuoUITests;
+			productName = cuocuoUITests;
+			productReference = B20000000000000000000002 /* cuocuoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -76,6 +161,10 @@
 				TargetAttributes = {
 					000000000000000100000000 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					A10000000000000000000006 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 000000000000000100000000;
 					};
 				};
 			};
@@ -94,12 +183,24 @@
 			projectRoot = "";
 			targets = (
 				000000000000000100000000 /* cuocuo */,
+				A10000000000000000000006 /* cuocuoTests */,
+				B20000000000000000000006 /* cuocuoUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		000000000000000140000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		A10000000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		B20000000000000000000005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -112,7 +213,30 @@
 			files = (
 			);
 		};
+		A10000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		B20000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A10000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* cuocuo */;
+			targetProxy = A10000000000000000000007 /* PBXContainerItemProxy */;
+		};
+		B20000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 000000000000000100000000 /* cuocuo */;
+			targetProxy = B20000000000000000000007 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "cuocuo" */ = {
@@ -252,8 +376,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "错错";
@@ -271,7 +397,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -291,8 +417,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "错错";
@@ -310,7 +438,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "devplaceholder.$(PROJECT_UNIQUE_VALUE:identifier).$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -322,6 +450,96 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
+			};
+			name = Release;
+		};
+		A10000000000000000000009 /* Debug configuration for PBXNativeTarget "cuocuoTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cuocuo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/cuocuo";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000A /* Release configuration for PBXNativeTarget "cuocuoTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cuocuo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/cuocuo";
+			};
+			name = Release;
+		};
+		B20000000000000000000009 /* Debug configuration for PBXNativeTarget "cuocuoUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = cuocuo;
+			};
+			name = Debug;
+		};
+		B2000000000000000000000A /* Release configuration for PBXNativeTarget "cuocuoUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PL22H57D77;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.fanyu.cuocuoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = cuocuo;
 			};
 			name = Release;
 		};
@@ -341,6 +559,22 @@
 			buildConfigurations = (
 				000000000000000111000000 /* Debug configuration for PBXNativeTarget "cuocuo" */,
 				000000000000000112000000 /* Release configuration for PBXNativeTarget "cuocuo" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		B2000000000000000000000B /* Build configuration list for PBXNativeTarget "cuocuoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B20000000000000000000009 /* Debug configuration for PBXNativeTarget "cuocuoUITests" */,
+				B2000000000000000000000A /* Release configuration for PBXNativeTarget "cuocuoUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000000B /* Build configuration list for PBXNativeTarget "cuocuoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000009 /* Debug configuration for PBXNativeTarget "cuocuoTests" */,
+				A1000000000000000000000A /* Release configuration for PBXNativeTarget "cuocuoTests" */,
 			);
 			defaultConfigurationName = Release;
 		};
